@@ -8,13 +8,13 @@ import random
 st.set_page_config(page_title="고전 어휘 외워보자!", page_icon="📖", layout="centered")
 
 # -----------------------------
-# CSS (밤하늘, 별똥별, 중앙 배치, 게임 스타일)
+# CSS (화이트/우드 톤, 부드러운 느낌)
 # -----------------------------
 page_bg = """
 <style>
 .stApp { 
-    background-color: #0b1a3d; /* 어두운 밤하늘 블루 */ 
-    font-family: 'Arial', sans-serif; 
+    background-color: #fdf6f0; /* 부드러운 화이트/우드톤 배경 */ 
+    font-family: 'Georgia', serif; 
 }
 
 /* 메인 화면 중앙 배치 */
@@ -25,25 +25,25 @@ page_bg = """
     align-items: center;
     height: 80vh;
     text-align: center;
-    color: #99ccff;
+    color: #5a3e2b; /* 우드 톤 글씨 */
 }
 
 h1 { 
-    color: #00ccff; 
+    color: #8b5e3c; 
     font-size: 3em; 
     font-weight: bold; 
     margin-bottom: 20px; 
 }
 
 h2 { 
-    color: #cce0ff; 
+    color: #6b4a32; 
     font-size: 1.5em;
     margin-bottom: 40px; 
 }
 
 button.start-btn { 
-    background-color: #00ccff; 
-    color: #0b1a3d; 
+    background-color: #c79a6e; 
+    color: #fff; 
     border: none; 
     padding: 15px 40px; 
     font-size: 24px; 
@@ -53,43 +53,20 @@ button.start-btn {
     transition: 0.3s; 
 }
 button.start-btn:hover { 
-    background-color: #3399ff; 
-    color: #ffffff; 
-}
-
-/* 별똥별 애니메이션 */
-@keyframes starfall {
-    0% { transform: translateY(-10px) translateX(0); opacity: 1; }
-    100% { transform: translateY(600px) translateX(100px); opacity: 0; }
-}
-.star {
-    position: absolute;
-    width: 3px;
-    height: 3px;
-    background: #fff;
-    border-radius: 50%;
-    top: 0;
-    left: 50%;
-    animation: starfall linear infinite;
-    animation-duration: 3s;
+    background-color: #a3784f; 
+    color: #fff; 
 }
 
 /* 게임 화면 스타일 */
-h3 { color: #cce0ff; }
-.block-container { background: #1a2a55; padding: 25px; border-radius: 15px; box-shadow: 0px 4px 15px rgba(0,0,0,0.3); margin-bottom: 20px; color: #ffffff; }
-.score-card { background: #1a2a55; padding: 15px; border-radius: 15px; box-shadow: 0px 3px 8px rgba(0,0,0,0.2); margin-bottom: 10px; color: #ffffff; }
-div.stButton > button { background-color: #0052cc; color: white; border: none; border-radius: 6px;
+h3 { color: #5a3e2b; }
+.block-container { background: #fff3e6; padding: 25px; border-radius: 15px; 
+                    box-shadow: 0px 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px; color: #5a3e2b; }
+.score-card { background: #fff3e6; padding: 15px; border-radius: 15px; 
+               box-shadow: 0px 3px 8px rgba(0,0,0,0.15); margin-bottom: 10px; color: #5a3e2b; }
+div.stButton > button { background-color: #c79a6e; color: white; border: none; border-radius: 6px;
                          padding: 10px 20px; font-size: 16px; font-weight: bold; }
-div.stButton > button:hover { background-color: #003d99; color: #e6f0ff; }
+div.stButton > button:hover { background-color: #a3784f; color: #fff; }
 </style>
-
-<!-- 별똥별 여러 개 -->
-<div class="star" style="animation-delay:0s;"></div>
-<div class="star" style="animation-delay:1s;"></div>
-<div class="star" style="animation-delay:2s;"></div>
-<div class="star" style="animation-delay:3s;"></div>
-<div class="star" style="animation-delay:4s;"></div>
-<div class="star" style="animation-delay:5s;"></div>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
@@ -148,8 +125,8 @@ def generate_question():
 if not st.session_state.game_started:
     st.markdown("""
     <div class="main-container">
-        <h1>🌟 고전 어휘 학습 게임 🌟</h1>
-        <h2>고전 어휘를 외워보세요!</h2>
+        <h1>🌿 고전 어휘 학습 게임 🌿</h1>
+        <h2>고전 어휘를 외어보세요!</h2>
     </div>
     """, unsafe_allow_html=True)
     
