@@ -122,7 +122,6 @@ def generate_question():
         remaining = sentences.copy()
     q = random.choice(remaining)
     st.session_state.used_questions.append(q)
-    # 밑줄 처리
     sentence = q["sentence"].replace(q["word"], f"<u>{q['word']}</u>")
     options = q["options"].copy()
     random.shuffle(options)
@@ -139,6 +138,7 @@ if not st.session_state.game_started:
     <div class="main-container">
         <h1>🌿 고전 어휘 학습 게임 🌿</h1>
         <h2>고전 어휘를 외워보세요!</h2>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Leaf_icon.svg/1024px-Leaf_icon.svg.png" width="200">
     </div>
     """, unsafe_allow_html=True)
 
@@ -149,7 +149,6 @@ if not st.session_state.game_started:
 # 게임 화면
 # -----------------------------
 if st.session_state.game_started:
-    # 10문제 종료 처리
     if st.session_state.q_num > MAX_QUESTIONS:
         st.success(f"🎉 게임 종료! 최종 점수: {st.session_state.score}, 계급: {st.session_state.rank}")
         if st.button("게임 다시 시작하기"):
@@ -164,17 +163,19 @@ if st.session_state.game_started:
         st.stop()
 
     sentence, target_word, correct_meaning, options = st.session_state.quiz_data
-
     st.subheader(f"Q{st.session_state.q_num}. 밑줄 친 단어의 의미는 무엇일까요?")
     st.markdown(f"<div class='block-container'>{sentence}</div>", unsafe_allow_html=True)
-
     st.session_state.choice = st.radio("뜻을 고르세요:", options, index=0 if not st.session_state.submitted else None)
 
-    # 버튼 나란히
-    col1, col2 = st.columns(2)
+    # -----------------------------
+    # 버튼 form 안에 넣기 (한 번 클릭으로 제출 + 다음 문제 처리)
+    # -----------------------------
+    with st.form(key="quiz_form"):
+        col1, col2 = st.columns(2)
+        submit_clicked = col1.form_submit_button("제출")
+        next_clicked = col2.form_submit_button("다음 문제")
 
-    with col1:
-        if st.button("제출") and not st.session_state.submitted:
+        if submit_clicked and not st.session_state.submitted:
             st.session_state.submitted = True
             prev_rank = get_rank(st.session_state.score)
             if st.session_state.choice == correct_meaning:
@@ -190,8 +191,7 @@ if st.session_state.game_started:
                 st.success(msg)
             st.session_state.rank = new_rank
 
-    with col2:
-        if st.button("다음 문제") and st.session_state.submitted:
+        if next_clicked and st.session_state.submitted:
             st.session_state.quiz_data = generate_question()
             st.session_state.submitted = False
             st.session_state.choice = None
