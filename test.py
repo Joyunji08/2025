@@ -1,5 +1,88 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
-import random
+import random, base64
+from pathlib import Path
+
+# -----------------------------
+# 페이지 & 기본 스타일
+# -----------------------------
+st.set_page_config(page_title="고전 시가 어휘 게임", page_icon="📘", layout="centered")
+
+# 전통 분위기 배경/버튼
+st.markdown("""
+<style>
+.stApp {
+    background: url("https://i.ibb.co/Zm5rfyk/flower-bg.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+h1 {
+    color: #3b2f2f;
+    text-align: center;
+    background-color: rgba(255, 248, 220, 0.7);
+    padding: 10px;
+    border-radius: 10px;
+}
+.block-container {
+    background: rgba(255, 255, 255, 0.85);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #c9a66b;
+}
+div.stButton > button {
+    background-color: #f8f1e7;
+    color: #3b2f2f;
+    border: 2px solid #c9a66b;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+div.stButton > button:hover { background-color: #e6d3c3; color: #000; }
+</style>
+""", unsafe_allow_html=True)
+
+# -----------------------------
+# 옛한글 폰트 임베드 (@font-face)
+# -----------------------------
+def inject_old_hangul_font():
+    # 우선순위: 함초롬바탕 옛한글 → 함초롬돋움 옛한글 → 나눔바른고딕 옛한글
+    candidates = [
+        "fonts/HCRBatangLVT.ttf",
+        "fonts/HCRDotumLVT.ttf",
+        "fonts/NanumBarunGothicYetHangul.ttf",
+    ]
+    chosen = None
+    for p in candidates:
+        if Path(p).exists():
+            chosen = p
+            break
+
+    if chosen:
+        with open(chosen, "rb") as f:
+            font_b64 = base64.b64encode(f.read()).decode()
+        st.markdown(f"""
+        <style>
+        @font-face {{
+            font-family: 'OldHangul';
+            src: url(data:font/ttf;base64,{font_b64}) format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }}
+        /* 앱 전역에 강제 적용 */
+        html, body, .stApp, .stApp * {{
+            font-family: 'OldHangul', serif !important;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+        return True, chosen
+    else:
+        st.warning("⚠️ 옛한글 폰트 파일을 찾지 못했습니다. 프로젝트의 fonts/ 폴더에 HCRBatangLVT.ttf(권장) 또는 HCRDotumLVT.ttf를 넣어주세요.")
+        return False, None
+
+_ = inject_old_hangul_font()
 
 # -----------------------------
 # 데이터셋: 고전시가 필수 어휘 100
@@ -122,101 +205,39 @@ words = {
 }
 
 # -----------------------------
-# 페이지 설정
-# -----------------------------
-st.set_page_config(page_title="고전 시가 어휘 게임", page_icon="📘", layout="centered")
-
-# -----------------------------
-# CSS (전통 분위기)
-# -----------------------------
-page_bg = """
-<style>
-.stApp {
-    background: url("https://i.ibb.co/Zm5rfyk/flower-bg.jpg");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    font-family: 'Nanum Myeongjo', serif;
-}
-h1 {
-    color: #3b2f2f;
-    text-align: center;
-    background-color: rgba(255, 248, 220, 0.7);
-    padding: 10px;
-    border-radius: 10px;
-}
-.block-container {
-    background: rgba(255, 255, 255, 0.8);
-    padding: 20px;
-    border-radius: 15px;
-    border: 2px solid #c9a66b;
-}
-div.stButton > button {
-    background-color: #f8f1e7;
-    color: #3b2f2f;
-    border: 2px solid #c9a66b;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 18px;
-    font-weight: bold;
-}
-div.stButton > button:hover {
-    background-color: #e6d3c3;
-    color: black;
-}
-</style>
-"""
-st.markdown(page_bg, unsafe_allow_html=True)
-
-# -----------------------------
 # 세션 상태
 # -----------------------------
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "q_num" not in st.session_state:
-    st.session_state.q_num = 1
-if "quiz_data" not in st.session_state:
-    st.session_state.quiz_data = None
-if "rank" not in st.session_state:
-    st.session_state.rank = "노비"
+if "score" not in st.session_state: st.session_state.score = 0
+if "q_num" not in st.session_state: st.session_state.q_num = 1
+if "quiz_data" not in st.session_state: st.session_state.quiz_data = None
+if "rank" not in st.session_state: st.session_state.rank = "노비"
 
 # -----------------------------
-# 계급 판정
+# 계급 로직
 # -----------------------------
-def get_rank(score):
-    if score < 10:
-        return "노비"
-    elif score < 20:
-        return "상인"
-    elif score < 40:
-        return "중인"
-    else:
-        return "양반"
+def get_rank(score:int)->str:
+    if score < 10:  return "노비"
+    elif score < 20: return "상인"
+    elif score < 40: return "중인"     # 양반 승급은 20문제 필요 → 20~39는 중인
+    else:            return "양반"
 
-def get_rank_message(prev, new):
-    if prev != new:
-        if new == "상인":
-            return "🎉 축하합니다! 이제 상인이 되셨습니다."
-        elif new == "중인":
-            return "🎉 축하합니다! 이제 중인 계급으로 오르셨습니다."
-        elif new == "양반":
-            return "🎉 과거 시험에 급제하였씁니다! 이제 양반이 되셨습니다!"
+def get_rank_message(prev:str, new:str):
+    if prev == new: return None
+    if new == "상인": return "🎉 축하합니다! 이제 상인이 되셨습니다."
+    if new == "중인": return "🎉 축하합니다! 이제 중인 계급으로 오르셨습니다."
+    if new == "양반": return "🎉 과거 시험에 급제하였씁니다! 이제 양반이 되셨습니다!"
     return None
 
 # -----------------------------
-# 문제 생성
+# 문제 생성 (정답 제외하고 오답 추출 → 중복 방지)
 # -----------------------------
 def generate_question():
-    word, meaning = random.choice(list(words.items()))
-    options = random.sample(list(words.keys()), 3)
-    if word not in options:
-        options[0] = word
+    answer, meaning = random.choice(list(words.items()))
+    wrongs = random.sample([w for w in words.keys() if w != answer], 3)
+    options = wrongs + [answer]
     random.shuffle(options)
-    return word, meaning, options
+    return answer, meaning, options
 
-# -----------------------------
-# 문제 세팅
-# -----------------------------
 if st.session_state.quiz_data is None:
     st.session_state.quiz_data = generate_question()
 
@@ -226,6 +247,7 @@ answer, meaning, options = st.session_state.quiz_data
 # 화면
 # -----------------------------
 st.title("📘 고전 시가 필수 어휘 학습 게임")
+st.caption("옛한글 글자가 네모(□)로 보이면 상단의 폰트 경고를 확인하세요.")
 st.subheader(f"Q{st.session_state.q_num}. 다음 뜻에 해당하는 단어는?")
 st.info(meaning)
 
@@ -241,7 +263,6 @@ if st.button("제출"):
     st.session_state.q_num += 1
     st.session_state.quiz_data = generate_question()
 
-    # 계급 갱신
     new_rank = get_rank(st.session_state.score)
     msg = get_rank_message(prev_rank, new_rank)
     if msg:
@@ -250,18 +271,14 @@ if st.button("제출"):
     st.session_state.rank = new_rank
 
 # -----------------------------
-# 점수 & 계급
+# 점수 & 계급 & 리셋
 # -----------------------------
 st.write(f"현재 점수: **{st.session_state.score}점**")
 st.write(f"현재 계급: 🏅 **{st.session_state.rank}**")
 
-# -----------------------------
-# 리셋 버튼
-# -----------------------------
 if st.button("게임 다시 시작하기"):
     st.session_state.score = 0
     st.session_state.q_num = 1
     st.session_state.quiz_data = generate_question()
     st.session_state.rank = "노비"
     st.experimental_rerun()
-
