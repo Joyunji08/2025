@@ -138,7 +138,6 @@ if not st.session_state.game_started:
     <div class="main-container">
         <h1>🌿 고전 어휘 학습 게임 🌿</h1>
         <h2>고전 어휘를 외워보세요!</h2>
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Leaf_icon.svg/1024px-Leaf_icon.svg.png" width="200">
     </div>
     """, unsafe_allow_html=True)
 
