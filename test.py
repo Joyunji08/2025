@@ -8,22 +8,69 @@ import random
 st.set_page_config(page_title="고전 어휘 외워보자!", page_icon="📖", layout="centered")
 
 # -----------------------------
-# CSS
+# CSS (배경 + 별똥별 + 게임 스타일)
 # -----------------------------
 page_bg = """
 <style>
-.stApp { background-color: #f0f6ff; font-family: 'Arial', sans-serif; }
-h1 { color: #0052cc; text-align: center; font-size: 2.2em; font-weight: bold;
-     padding: 12px; border-bottom: 3px solid #0052cc; margin-bottom: 20px; }
-h2,h3 { color: #003366; }
+.stApp { background-color: #001f4d; font-family: 'Arial', sans-serif; }
+h1 { color: #00ccff; text-align: center; font-size: 3em; font-weight: bold; margin-bottom: 20px; }
+h2 { color: #99ccff; text-align: center; margin-bottom: 40px; }
+button.start-btn { 
+    background-color: #00ccff; 
+    color: #001f4d; 
+    border: none; 
+    padding: 15px 30px; 
+    font-size: 24px; 
+    border-radius: 12px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: 0.3s; 
+}
+button.start-btn:hover { background-color: #3399ff; color: #ffffff; }
+
+@keyframes starfall {
+    0% { transform: translateY(-10px) translateX(0); opacity: 1; }
+    100% { transform: translateY(600px) translateX(100px); opacity: 0; }
+}
+.star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    border-radius: 50%;
+    top: 0;
+    left: 50%;
+    animation: starfall linear infinite;
+    animation-duration: 3s;
+}
+
+h3 { color: #003366; }
 .block-container { background: #ffffff; padding: 25px; border-radius: 15px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
 .score-card { background: #ffffff; padding: 15px; border-radius: 15px; box-shadow: 0px 3px 8px rgba(0,0,0,0.1); margin-bottom: 10px; }
 div.stButton > button { background-color: #0052cc; color: white; border: none; border-radius: 6px;
                          padding: 10px 20px; font-size: 16px; font-weight: bold; }
 div.stButton > button:hover { background-color: #003d99; color: #e6f0ff; }
 </style>
+
+<!-- 별똥별 여러 개 -->
+<div class="star" style="animation-delay:0s;"></div>
+<div class="star" style="animation-delay:1s;"></div>
+<div class="star" style="animation-delay:2s;"></div>
+<div class="star" style="animation-delay:3s;"></div>
+<div class="star" style="animation-delay:4s;"></div>
+<div class="star" style="animation-delay:5s;"></div>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
+
+# -----------------------------
+# 세션 상태 초기화
+# -----------------------------
+if "game_started" not in st.session_state: st.session_state.game_started = False
+if "score" not in st.session_state: st.session_state.score = 0
+if "q_num" not in st.session_state: st.session_state.q_num = 1
+if "quiz_data" not in st.session_state: st.session_state.quiz_data = None
+if "rank" not in st.session_state: st.session_state.rank = "노비"
+if "submitted" not in st.session_state: st.session_state.submitted = False
 
 # -----------------------------
 # 문제 데이터
@@ -35,21 +82,8 @@ sentences = [
     {"sentence":"절의를 굽히지 않고 나라를 지켰도다","word":"절의","hanja":"節義","meaning":"절개와 의리","options":["절개와 의리","욕심과 탐욕","게으름","겁 많음"]},
     {"sentence":"호연지기 기개 드높아","word":"기개","hanja":"氣槪","meaning":"씩씩하고 꿋꿋한 기상","options":["씩씩하고 꿋꿋한 기상","나약함","무기력함","겁 많음"]},
     {"sentence":"산천이 아름다우니 마음이 설렌다","word":"산천","hanja":"山川","meaning":"산과 내, 자연 경치","options":["산과 내, 자연 경치","바다와 강","도시","집"]},
-    {"sentence":"단옷날이라 온 집안이 흥성이다","word":"단옷","hanja":"端午","meaning":"음력 5월 5일","options":["음력 5월 5일","음력 1월 1일","추석","설날"]},
-    {"sentence":"고려의 충신은 충절을 지켰다","word":"충절","hanja":"忠節","meaning":"충성과 절개","options":["충성과 절개","배신","무관심","탐욕"]},
-    {"sentence":"옥루에서 달빛을 바라보며 시를 읊었다","word":"옥루","hanja":"玉樓","meaning":"높은 누각","options":["높은 누각","궁궐","낮은 집","장터","연못"]},
-    {"sentence":"봄바람에 꽃향기 가득하다","word":"풍류","hanja":"風流","meaning":"멋스러운 삶, 예술적 정취","options":["멋스러운 삶, 예술적 정취","혼잡한 삶","가난한 생활","싸움"]},
-    # ... 나머지 데이터 동일한 형식으로 추가
+    # ... 나머지 데이터는 동일한 형식으로 추가
 ]
-
-# -----------------------------
-# 세션 상태
-# -----------------------------
-if "score" not in st.session_state: st.session_state.score = 0
-if "q_num" not in st.session_state: st.session_state.q_num = 1
-if "quiz_data" not in st.session_state: st.session_state.quiz_data = None
-if "rank" not in st.session_state: st.session_state.rank = "노비"
-if "submitted" not in st.session_state: st.session_state.submitted = False
 
 # -----------------------------
 # 계급 로직
@@ -77,52 +111,63 @@ def generate_question():
     random.shuffle(options)
     return sentence, q["word"], q["meaning"], options
 
-if st.session_state.quiz_data is None:
-    st.session_state.quiz_data = generate_question()
-
-sentence, target_word, correct_meaning, options = st.session_state.quiz_data
+# -----------------------------
+# 시작 화면
+# -----------------------------
+if not st.session_state.game_started:
+    st.markdown("<h1>🌟 고전 어휘 학습 게임 🌟</h1>", unsafe_allow_html=True)
+    st.markdown("<h2>별똥별이 떨어지는 밤하늘과 함께 고전 어휘를 외워보세요!</h2>", unsafe_allow_html=True)
+    if st.button("시작하겠습니까?", key="start_game"):
+        st.session_state.game_started = True
+        st.experimental_rerun()
 
 # -----------------------------
-# 화면
+# 게임 화면
 # -----------------------------
-st.title("📖 문해력 증진 학습 게임")
-st.subheader(f"Q{st.session_state.q_num}. 밑줄 친 단어의 의미는 무엇일까요?")
-st.markdown(f"<div class='block-container'>{sentence}</div>", unsafe_allow_html=True)
+if st.session_state.game_started:
+    if st.session_state.quiz_data is None:
+        st.session_state.quiz_data = generate_question()
 
-choice = st.radio("뜻을 고르세요:", options, index=0 if not st.session_state.submitted else None)
+    sentence, target_word, correct_meaning, options = st.session_state.quiz_data
 
-# 제출 버튼
-if st.button("제출") and not st.session_state.submitted:
-    st.session_state.submitted = True
-    prev_rank = get_rank(st.session_state.score)
-    if choice == correct_meaning:
-        st.success("✅ 정답입니다!")
-        st.session_state.score += 1
-    else:
-        st.error(f"❌ 오답입니다! '{target_word}'의 뜻은 '{correct_meaning}' 입니다.")
-    st.session_state.q_num += 1
-    new_rank = get_rank(st.session_state.score)
-    msg = get_rank_message(prev_rank,new_rank)
-    if msg:
-        st.balloons()
-        st.success(msg)
-    st.session_state.rank = new_rank
+    st.title("📖 문해력 증진 학습 게임")
+    st.subheader(f"Q{st.session_state.q_num}. 밑줄 친 단어의 의미는 무엇일까요?")
+    st.markdown(f"<div class='block-container'>{sentence}</div>", unsafe_allow_html=True)
 
-# 다음 문제 버튼
-if st.button("다음 문제") and st.session_state.submitted:
-    st.session_state.quiz_data = generate_question()
-    st.session_state.submitted = False
-    st.experimental_rerun()
+    choice = st.radio("뜻을 고르세요:", options, index=0 if not st.session_state.submitted else None)
 
-# 점수 & 계급 표시
-st.markdown(f"<div class='score-card'>현재 점수: <b>{st.session_state.score}점</b></div>", unsafe_allow_html=True)
-st.markdown(f"<div class='score-card'>현재 계급: 🏅 <b>{st.session_state.rank}</b></div>", unsafe_allow_html=True)
+    # 제출 버튼
+    if st.button("제출") and not st.session_state.submitted:
+        st.session_state.submitted = True
+        prev_rank = get_rank(st.session_state.score)
+        if choice == correct_meaning:
+            st.success("✅ 정답입니다!")
+            st.session_state.score += 1
+        else:
+            st.error(f"❌ 오답입니다! '{target_word}'의 뜻은 '{correct_meaning}' 입니다.")
+        st.session_state.q_num += 1
+        new_rank = get_rank(st.session_state.score)
+        msg = get_rank_message(prev_rank,new_rank)
+        if msg:
+            st.balloons()
+            st.success(msg)
+        st.session_state.rank = new_rank
 
-# 게임 초기화
-if st.button("게임 다시 시작하기"):
-    st.session_state.score = 0
-    st.session_state.q_num = 1
-    st.session_state.quiz_data = generate_question()
-    st.session_state.rank = "노비"
-    st.session_state.submitted = False
-    st.experimental_rerun()
+    # 다음 문제 버튼
+    if st.button("다음 문제") and st.session_state.submitted:
+        st.session_state.quiz_data = generate_question()
+        st.session_state.submitted = False
+        st.experimental_rerun()
+
+    # 점수 & 계급 표시
+    st.markdown(f"<div class='score-card'>현재 점수: <b>{st.session_state.score}점</b></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='score-card'>현재 계급: 🏅 <b>{st.session_state.rank}</b></div>", unsafe_allow_html=True)
+
+    # 게임 초기화
+    if st.button("게임 다시 시작하기"):
+        st.session_state.score = 0
+        st.session_state.q_num = 1
+        st.session_state.quiz_data = generate_question()
+        st.session_state.rank = "노비"
+        st.session_state.submitted = False
+        st.experimental_rerun()
