@@ -36,6 +36,8 @@ h2 {
     align-items: center;
     justify-content: center;
     height: 70vh;
+    max-width: 600px;
+    margin: 0 auto;
 }
 .block-container {
     background: #ffffff; 
@@ -70,7 +72,7 @@ div.stButton > button:hover {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # -----------------------------
-# 문제 데이터 (예시)
+# 문제 데이터
 # -----------------------------
 sentences = [
     {"sentence":"님은 가시고 나는 임을 뫼와야 하리라","word":"뫼다","hanja":"-","meaning":"모시다","options":["모시다","받들다","지키다","바라보다","버리다"]},
@@ -81,6 +83,8 @@ sentences = [
     # 필요한 만큼 더 추가
 ]
 
+MAX_QUESTIONS = 10
+
 # -----------------------------
 # 세션 상태 초기화
 # -----------------------------
@@ -90,6 +94,8 @@ if "quiz_data" not in st.session_state: st.session_state.quiz_data = None
 if "rank" not in st.session_state: st.session_state.rank = "노비"
 if "submitted" not in st.session_state: st.session_state.submitted = False
 if "game_started" not in st.session_state: st.session_state.game_started = False
+if "used_questions" not in st.session_state: st.session_state.used_questions = []
+if "choice" not in st.session_state: st.session_state.choice = None
 
 # -----------------------------
 # 계급 로직
@@ -108,10 +114,15 @@ def get_rank_message(prev:str,new:str):
     return None
 
 # -----------------------------
-# 문제 생성
+# 문제 생성 (중복 방지)
 # -----------------------------
 def generate_question():
-    q = random.choice(sentences)
+    remaining = [q for q in sentences if q not in st.session_state.used_questions]
+    if not remaining:
+        st.session_state.used_questions = []
+        remaining = sentences.copy()
+    q = random.choice(remaining)
+    st.session_state.used_questions.append(q)
     sentence = q["sentence"].replace(q["word"], f"**__{q['word']}__**")
     options = q["options"].copy()
     random.shuffle(options)
@@ -127,7 +138,7 @@ if not st.session_state.game_started:
     st.markdown("""
     <div class="main-container">
         <h1>🌿 고전 어휘 학습 게임 🌿</h1>
-        <h2>고전 어휘를 외어보세요!</h2>
+        <h2>고전 어휘를 외워보세요!</h2>
     </div>
     """, unsafe_allow_html=True)
 
@@ -138,19 +149,31 @@ if not st.session_state.game_started:
 # 게임 화면
 # -----------------------------
 if st.session_state.game_started:
+    # 10문제 종료 처리
+    if st.session_state.q_num > MAX_QUESTIONS:
+        st.success(f"🎉 게임 종료! 최종 점수: {st.session_state.score}, 계급: {st.session_state.rank}")
+        if st.button("게임 다시 시작하기"):
+            st.session_state.score = 0
+            st.session_state.q_num = 1
+            st.session_state.quiz_data = generate_question()
+            st.session_state.rank = "노비"
+            st.session_state.submitted = False
+            st.session_state.game_started = False
+            st.session_state.used_questions = []
+        st.stop()
+
     sentence, target_word, correct_meaning, options = st.session_state.quiz_data
 
-    st.title("📖 문해력 증진 학습 게임")
     st.subheader(f"Q{st.session_state.q_num}. 밑줄 친 단어의 의미는 무엇일까요?")
     st.markdown(f"<div class='block-container'>{sentence}</div>", unsafe_allow_html=True)
 
-    choice = st.radio("뜻을 고르세요:", options, index=0 if not st.session_state.submitted else None)
+    st.session_state.choice = st.radio("뜻을 고르세요:", options, index=0 if not st.session_state.submitted else None)
 
     # 제출 버튼
     if st.button("제출") and not st.session_state.submitted:
         st.session_state.submitted = True
         prev_rank = get_rank(st.session_state.score)
-        if choice == correct_meaning:
+        if st.session_state.choice == correct_meaning:
             st.success("✅ 정답입니다!")
             st.session_state.score += 1
         else:
@@ -167,6 +190,7 @@ if st.session_state.game_started:
     if st.button("다음 문제") and st.session_state.submitted:
         st.session_state.quiz_data = generate_question()
         st.session_state.submitted = False
+        st.session_state.choice = None
 
     # 점수 & 계급 표시
     st.markdown(f"<div class='score-card'>현재 점수: <b>{st.session_state.score}점</b></div>", unsafe_allow_html=True)
@@ -180,3 +204,5 @@ if st.session_state.game_started:
         st.session_state.rank = "노비"
         st.session_state.submitted = False
         st.session_state.game_started = False
+        st.session_state.used_questions = []
+        st.session_state.choice = None
