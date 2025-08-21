@@ -8,7 +8,7 @@ import random
 st.set_page_config(page_title="고전 어휘 외워보자!", page_icon="📖", layout="centered")
 
 # -----------------------------
-# CSS (화이트·우드 톤)
+# CSS (화이트·우드 톤 + 버튼 나란히)
 # -----------------------------
 page_bg = """
 <style>
@@ -61,11 +61,15 @@ div.stButton > button {
     padding: 12px 25px; 
     font-size: 18px; 
     font-weight: bold; 
-    margin: 10px;
+    margin: 5px;
 }
 div.stButton > button:hover {
     background-color: #855e42; 
     color: #fdfaf6; 
+}
+.button-container {
+    display: flex;
+    justify-content: center;
 }
 </style>
 """
@@ -80,7 +84,6 @@ sentences = [
     {"sentence":"일편단심 가실 줄이 이시랴","word":"단심","hanja":"丹心","meaning":"변치 않는 한마음","options":["변치 않는 한마음","나태한 마음","변덕스런 마음","분노한 마음"]},
     {"sentence":"절의를 굽히지 않고 나라를 지켰도다","word":"절의","hanja":"節義","meaning":"절개와 의리","options":["절개와 의리","욕심과 탐욕","게으름","겁 많음"]},
     {"sentence":"호연지기 기개 드높아","word":"기개","hanja":"氣槪","meaning":"씩씩하고 꿋꿋한 기상","options":["씩씩하고 꿋꿋한 기상","나약함","무기력함","겁 많음"]},
-    # 필요한 만큼 더 추가
 ]
 
 MAX_QUESTIONS = 10
@@ -160,6 +163,7 @@ if st.session_state.game_started:
             st.session_state.submitted = False
             st.session_state.game_started = False
             st.session_state.used_questions = []
+            st.session_state.choice = None
         st.stop()
 
     sentence, target_word, correct_meaning, options = st.session_state.quiz_data
@@ -169,34 +173,37 @@ if st.session_state.game_started:
 
     st.session_state.choice = st.radio("뜻을 고르세요:", options, index=0 if not st.session_state.submitted else None)
 
-    # 제출 버튼
-    if st.button("제출") and not st.session_state.submitted:
-        st.session_state.submitted = True
-        prev_rank = get_rank(st.session_state.score)
-        if st.session_state.choice == correct_meaning:
-            st.success("✅ 정답입니다!")
-            st.session_state.score += 1
-        else:
-            st.error(f"❌ 오답입니다! '{target_word}'의 뜻은 '{correct_meaning}' 입니다.")
-        st.session_state.q_num += 1
-        new_rank = get_rank(st.session_state.score)
-        msg = get_rank_message(prev_rank,new_rank)
-        if msg:
-            st.balloons()
-            st.success(msg)
-        st.session_state.rank = new_rank
+    # 버튼 나란히
+    col1, col2 = st.columns(2)
 
-    # 다음 문제 버튼
-    if st.button("다음 문제") and st.session_state.submitted:
-        st.session_state.quiz_data = generate_question()
-        st.session_state.submitted = False
-        st.session_state.choice = None
+    with col1:
+        if st.button("제출") and not st.session_state.submitted:
+            st.session_state.submitted = True
+            prev_rank = get_rank(st.session_state.score)
+            if st.session_state.choice == correct_meaning:
+                st.success("✅ 정답입니다!")
+                st.session_state.score += 1
+            else:
+                st.error(f"❌ 오답입니다! '{target_word}'의 뜻은 '{correct_meaning}' 입니다.")
+            st.session_state.q_num += 1
+            new_rank = get_rank(st.session_state.score)
+            msg = get_rank_message(prev_rank,new_rank)
+            if msg:
+                st.balloons()
+                st.success(msg)
+            st.session_state.rank = new_rank
+
+    with col2:
+        if st.button("다음 문제") and st.session_state.submitted:
+            st.session_state.quiz_data = generate_question()
+            st.session_state.submitted = False
+            st.session_state.choice = None
 
     # 점수 & 계급 표시
     st.markdown(f"<div class='score-card'>현재 점수: <b>{st.session_state.score}점</b></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='score-card'>현재 계급: 🏅 <b>{st.session_state.rank}</b></div>", unsafe_allow_html=True)
 
-    # 게임 초기화
+    # 게임 초기화 버튼
     if st.button("게임 다시 시작하기"):
         st.session_state.score = 0
         st.session_state.q_num = 1
