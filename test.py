@@ -67,10 +67,6 @@ div.stButton > button:hover {
     background-color: #855e42; 
     color: #fdfaf6; 
 }
-.button-container {
-    display: flex;
-    justify-content: center;
-}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
@@ -117,7 +113,7 @@ def get_rank_message(prev:str,new:str):
     return None
 
 # -----------------------------
-# 문제 생성 (중복 방지)
+# 문제 생성 (중복 방지, 밑줄 표시)
 # -----------------------------
 def generate_question():
     remaining = [q for q in sentences if q not in st.session_state.used_questions]
@@ -126,7 +122,8 @@ def generate_question():
         remaining = sentences.copy()
     q = random.choice(remaining)
     st.session_state.used_questions.append(q)
-    sentence = q["sentence"].replace(q["word"], f"**__{q['word']}__**")
+    # 밑줄 처리
+    sentence = q["sentence"].replace(q["word"], f"<u>{q['word']}</u>")
     options = q["options"].copy()
     random.shuffle(options)
     return sentence, q["word"], q["meaning"], options
